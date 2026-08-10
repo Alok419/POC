@@ -4,7 +4,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Precoding AI Analyzer (Unified)</title>
+    <title>POC AI Analyzer (Unified)</title>
     <style>
         /* --- GLOBAL LAYOUT (Dark Theme) --- */
         body {
@@ -363,7 +363,7 @@
 
 <body>
     <div class="card">
-        <h2> Precoding AI Analyzer </h2>
+        <h2> POC AI Analyzer </h2>
         <p>Extraction, PT/OT Eval, ICD-10 Audit & F2F</p>
         <div id="loadingMessage" style="text-align:center; color:#4fa3ff; margin-bottom:15px; font-weight:500;">
             Connecting to Salesforce...
@@ -441,8 +441,8 @@
 
         let currentSessionLogs = [];
 
-        let precodingStartTime = null;
-        let precodingCompleteDate = null;
+        let POCStartTime = null;
+        let POCCompleteDate = null;
         let CHART_ID = null;
         let GEMINI_API_KEY = null;
         let SF_SESSION_ID = null;
@@ -599,7 +599,7 @@
         async function startAnalysis() {
 
 
-            precodingStartTime = new Date().toISOString();
+            POCStartTime = new Date().toISOString();
             const analyzeBtn = document.getElementById("analyzeBtn");
             const resultArea = document.getElementById("resultArea");
             const jsonOutput = document.getElementById("jsonOutput");
@@ -707,7 +707,7 @@
 
         async function finalizeSave() {
 
-            precodingCompleteDate = new Date().toISOString();
+            POCCompleteDate = new Date().toISOString();
             const saveBtn = document.getElementById("saveBtn");
             const jsonOutput = document.getElementById("jsonOutput");
             const f2fOutput = document.getElementById("f2fOutput");
@@ -736,8 +736,8 @@
                     ptOtOutput.value,
                     CACHED_AI_TIME,
                     currentSessionLogs,
-                    precodingStartTime,
-                    precodingCompleteDate
+                    POCStartTime,
+                    POCCompleteDate
                 );
 
                 // --- PART 2: UPLOAD FILES VIA STANDARD API ---
@@ -773,7 +773,7 @@
 
         // 1. Send Data to Custom Apex REST API
         async function sendToSalesforce(rawJson, f2fSummary, ptOtJson, aiTimeSeconds, aiLogs, startTime, completeTime) {
-            const endpoint = `${SF_BASE_URL}/services/apexrest/preCoding/ai-result`;
+            const endpoint = `${SF_BASE_URL}/services/apexrest/POC/ai-result`;
 
             console.log("📤 Sending aiTimeSeconds:", aiTimeSeconds);
             console.log("📤 Sending aiLogs:", aiLogs);
@@ -787,8 +787,8 @@
                     ptOtJson: ptOtJson, // Added PT/OT to payload
                     aiTimeSeconds: aiTimeSeconds,
                     aiLogs: aiLogs,
-                    precodingStartTime: startTime,
-                    precodingCompleteDate: completeTime
+                    POCStartTime: startTime,
+                    POCCompleteDate: completeTime
                 })
             });
             if (!response.ok) throw new Error(await response.text());
@@ -995,7 +995,7 @@ Every output must directly come from the uploaded files.
             // added logs part
 
             currentSessionLogs.push({
-                description: "Precoding Elite Auditor",
+                description: "POC Elite Auditor",
                 model: data.modelVersion,
                 responseId: data.responseId,
                 promptTokens: data.usageMetadata.promptTokenCount,
