@@ -6,179 +6,246 @@
     <meta charset="UTF-8">
     <title>POC AI Analyzer (Unified)</title>
     <style>
-        /* --- GLOBAL LAYOUT (Dark Theme) --- */
+        @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
+
+        /* --- GLOBAL LAYOUT (Premium Dark Theme) --- */
         body {
             margin: 0;
             padding: 0;
-            font-family: "Segoe UI", Arial, sans-serif;
-            background: #0b1f2a;
+            font-family: 'Outfit', sans-serif;
+            background: #09090b; /* Very dark zinc */
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.04) 0%, transparent 50%),
+                radial-gradient(circle at 85% 30%, rgba(129, 140, 248, 0.04) 0%, transparent 50%);
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            color: #ffffff;
+            color: #fafafa;
         }
 
         .card {
-            width: 650px;
-            /* Slightly wider to accommodate data */
-            background: #081821;
-            border-radius: 14px;
-            padding: 28px;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, .45);
-            margin: 20px 0;
+            width: 700px;
+            background: rgba(24, 24, 27, 0.65);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.7),
+                0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+                0 0 20px rgba(56, 189, 248, 0.05);
+            margin: 40px 0;
             position: relative;
-            border: 1px solid #1f3a4d;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .card:hover {
+            box-shadow: 
+                0 30px 60px -12px rgba(0, 0, 0, 0.8),
+                0 0 0 1px rgba(255, 255, 255, 0.08) inset,
+                0 0 30px rgba(56, 189, 248, 0.1);
         }
 
         h2 {
             margin-top: 0;
-            margin-bottom: 8px;
-            font-weight: 600;
+            margin-bottom: 6px;
+            font-weight: 700;
+            font-size: 28px;
             text-align: center;
-            letter-spacing: 0.5px;
-            color: #e0e0e0;
+            letter-spacing: -0.5px;
+            background: linear-gradient(135deg, #ffffff 0%, #a1a1aa 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        p {
-            font-size: 14px;
-            opacity: 0.7;
+        p.subtitle {
+            font-size: 15px;
+            font-weight: 300;
             text-align: center;
-            margin-bottom: 25px;
-            color: #8daac2;
+            margin-bottom: 35px;
+            color: #a1a1aa;
+            letter-spacing: 0.2px;
         }
 
         /* --- FILE INPUT --- */
         input[type="file"] {
-            width: 100%;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px dashed #4fa3ff;
-            background: #06141c;
-            color: #fff;
-            cursor: pointer;
-            box-sizing: border-box;
-            margin-bottom: 20px;
-            transition: border-color 0.3s;
-        }
-
-        input[type="file"]:hover {
-            border-color: #7abaff;
+            display: none;
         }
 
         /* --- UPLOAD CARD STYLES --- */
         .upload-card {
-            background: linear-gradient(180deg, #0c2230, #081821);
-            border: 1px solid #1f3a4d;
-            border-radius: 14px;
-            padding: 22px;
+            background: rgba(39, 39, 42, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.2);
         }
 
         .upload-header {
             display: flex;
-            gap: 12px;
-            margin-bottom: 18px;
+            gap: 16px;
+            margin-bottom: 20px;
+            align-items: center;
         }
 
         .upload-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 10px;
-            background: rgba(79, 163, 255, 0.15);
-            color: #7abaff;
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(129, 140, 248, 0.15));
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            color: #38bdf8;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
+            font-size: 24px;
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.1);
         }
 
         .upload-title {
-            font-size: 15px;
+            font-size: 17px;
             font-weight: 600;
-            color: #e4f1ff;
+            color: #f4f4f5;
+            letter-spacing: -0.3px;
         }
 
         .upload-subtitle {
-            font-size: 12px;
-            color: #9bb9d4;
+            font-size: 13px;
+            font-weight: 400;
+            color: #71717a;
+            margin-top: 3px;
         }
 
         .upload-zone {
-            border: 2px dashed #355a74;
-            border-radius: 12px;
-            padding: 26px;
+            border: 2px dashed rgba(82, 82, 91, 0.6);
+            border-radius: 14px;
+            padding: 32px 20px;
             text-align: center;
-            background: #06141c;
+            background: rgba(24, 24, 27, 0.4);
             cursor: pointer;
-            transition: all 0.25s ease;
-            margin-bottom: 16px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at center, rgba(56,189,248,0.08) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         .upload-zone:hover {
-            border-color: #7abaff;
-            background: #081d2a;
+            border-color: #38bdf8;
+            background: rgba(39, 39, 42, 0.6);
+            transform: translateY(-2px);
+        }
+
+        .upload-zone:hover::before {
+            opacity: 1;
         }
 
         .upload-zone-icon {
-            font-size: 30px;
-            color: #7abaff;
-            margin-bottom: 6px;
+            font-size: 32px;
+            color: #38bdf8;
+            margin-bottom: 10px;
+            position: relative;
+            z-index: 1;
+            transition: transform 0.3s ease;
+        }
+        
+        .upload-zone:hover .upload-zone-icon {
+            transform: translateY(-4px);
         }
 
         .upload-zone-text {
-            font-size: 13px;
-            font-weight: 600;
-            color: #d6eaff;
+            font-size: 14px;
+            font-weight: 500;
+            color: #e4e4e7;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .upload-zone-subtext {
+            font-size: 12px;
+            color: #71717a;
+            margin-top: 6px;
+            position: relative;
+            z-index: 1;
         }
 
         .file-section-header {
-            font-size: 13px;
+            font-size: 14px;
             font-weight: 600;
-            color: #cfe7ff;
-            margin-bottom: 10px;
+            color: #a1a1aa;
+            margin: 24px 0 12px 0;
             display: none;
+        }
+
+        .file-count-badge {
+            background: #38bdf8;
+            color: #0f172a;
+            padding: 2px 8px;
+            border-radius: 10px;
+            font-size: 12px;
+            font-weight: 700;
+            margin-left: 6px;
         }
 
         /* --- FILE LIST --- */
         .file-list {
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-bottom: 16px;
+            gap: 12px;
+            margin-bottom: 24px;
         }
 
         .file-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            background: #ffffff;
+            background: rgba(39, 39, 42, 0.5);
             border-radius: 12px;
-            padding: 10px 14px;
-            border: 1px solid #e6e6e6;
+            padding: 12px 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.2s ease;
+            animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .file-item:hover {
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+            background: rgba(39, 39, 42, 0.8);
+            border-color: rgba(56, 189, 248, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         }
 
         .file-left {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 14px;
             min-width: 0;
         }
 
         .file-type-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            background: #eef5ff;
-            color: #4fa3ff;
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(129, 140, 248, 0.1));
+            color: #38bdf8;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            font-size: 20px;
+            border: 1px solid rgba(56, 189, 248, 0.15);
         }
 
         .file-meta {
@@ -188,171 +255,269 @@
         }
 
         .file-name {
-            font-size: 13px;
-            font-weight: 600;
-            color: #1e1e1e;
+            font-size: 14px;
+            font-weight: 500;
+            color: #f4f4f5;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
-            max-width: 260px;
+            max-width: 280px;
         }
 
         .file-size {
-            font-size: 11px;
-            color: #6b6b6b;
+            font-size: 12px;
+            color: #a1a1aa;
+            margin-top: 2px;
         }
 
         .remove-btn {
-            background: transparent;
-            border: none;
-            color: #9b9b9b;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+            color: #f87171;
             cursor: pointer;
-            padding: 6px;
-            border-radius: 6px;
+            padding: 8px;
+            border-radius: 8px;
             transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .remove-btn:hover {
-            background: #ffecec;
-            color: #d64545;
+            background: #ef4444;
+            color: #fff;
+            transform: scale(1.05);
         }
 
         /* --- BUTTONS --- */
         .analyze-btn {
             width: 100%;
-            padding: 13px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #4fa3ff, #7abaff);
+            padding: 16px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #0ea5e9, #3b82f6);
             border: none;
-            font-size: 14px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
             font-weight: 600;
-            color: #04121a;
+            color: #ffffff;
             cursor: pointer;
-            transition: all 0.25s ease;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(14, 165, 233, 0.3);
+        }
+        
+        .analyze-btn::after {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 50%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transform: skewX(-20deg);
+            transition: 0.5s;
         }
 
         .analyze-btn:not(:disabled):hover {
-            transform: translateY(-1px);
-            box-shadow: 0 12px 30px rgba(79, 163, 255, 0.35);
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(14, 165, 233, 0.4);
+        }
+        
+        .analyze-btn:not(:disabled):hover::after {
+            left: 150%;
         }
 
         .analyze-btn:disabled {
-            background: #6b6b6b;
-            color: #d1d1d1;
+            background: #3f3f46;
+            color: #a1a1aa;
+            cursor: not-allowed;
+            box-shadow: none;
         }
 
         .save-btn {
             width: 100%;
-            padding: 12px;
-            background: linear-gradient(135deg, #4cff9f, #27ae60);
-            color: #052e16;
+            padding: 16px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: #ffffff;
             border: none;
-            border-radius: 6px;
-            font-weight: bold;
-            margin-top: 15px;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            margin-top: 24px;
             cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        }
+
+        .save-btn:not(:disabled):hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 25px rgba(16, 185, 129, 0.4);
         }
 
         .save-btn:disabled {
-            background: #7f8c8d;
-            color: #fff;
+            background: #3f3f46;
+            color: #a1a1aa;
             cursor: not-allowed;
+            box-shadow: none;
         }
 
         /* --- PROGRESS --- */
         .progress-wrapper {
             display: none;
-            margin-top: 18px;
+            margin-top: 24px;
+            background: rgba(39, 39, 42, 0.4);
+            padding: 16px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .progress-label {
             display: flex;
             justify-content: space-between;
-            font-size: 12px;
-            color: #9bb9d4;
-            margin-bottom: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #e4e4e7;
+            margin-bottom: 10px;
+        }
+        
+        #progressPercent {
+            color: #38bdf8;
+            font-variant-numeric: tabular-nums;
         }
 
         .progress-container {
-            background: #102a3a;
-            border-radius: 10px;
-            height: 10px;
+            background: rgba(9, 9, 11, 0.6);
+            border-radius: 8px;
+            height: 8px;
             overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
         }
 
         .progress-fill {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, #4fa3ff, #7abaff);
-            transition: width 0.4s ease;
+            background: linear-gradient(90deg, #38bdf8, #818cf8);
+            border-radius: 8px;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
         }
 
         /* --- RESULTS --- */
         #resultArea {
             display: none;
-            margin-top: 25px;
-            border-top: 1px solid #1f3a4d;
-            padding-top: 20px;
+            margin-top: 24px;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-box-container {
+            position: relative;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: #09090b;
+        }
+
+        .result-box-header {
+            background: rgba(39, 39, 42, 0.8);
+            padding: 10px 16px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #a1a1aa;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        
+        .result-box-header::before {
+            content: '';
+            display: block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 8px #10b981;
         }
 
         .result-box {
             width: 100%;
-            background: #050e13;
-            color: #a6e22e;
-            border: 1px solid #1f3a4d;
-            border-radius: 6px;
-            padding: 12px;
-            font-family: monospace;
-            font-size: 12px;
+            background: transparent;
+            color: #38bdf8;
+            border: none;
+            padding: 16px;
+            font-family: 'JetBrains Mono', 'Courier New', Courier, monospace;
+            font-size: 13px;
+            line-height: 1.5;
             resize: vertical;
             box-sizing: border-box;
-            margin-bottom: 15px;
+            outline: none;
+        }
+        
+        /* Custom scrollbar for textarea */
+        .result-box::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        .result-box::-webkit-scrollbar-track {
+            background: #09090b; 
+        }
+        .result-box::-webkit-scrollbar-thumb {
+            background: #27272a; 
+            border-radius: 4px;
+        }
+        .result-box::-webkit-scrollbar-thumb:hover {
+            background: #3f3f46; 
         }
 
         textarea#jsonOutput {
-            height: 200px;
-        }
-
-        textarea#f2fOutput {
-            height: 100px;
-            color: #ffc107;
-        }
-
-        /* Yellow for F2F */
-        textarea#ptOtOutput {
-            height: 150px;
-            color: #82e0aa;
-        }
-
-        /* Green tint for PT/OT */
-
-        label {
-            font-size: 12px;
-            color: #8daac2;
-            display: block;
-            margin-bottom: 6px;
-            font-weight: 600;
-            text-transform: uppercase;
+            height: 350px;
         }
 
         .status {
-            margin-top: 15px;
-            font-size: 13px;
+            margin-top: 16px;
+            font-size: 14px;
+            font-weight: 500;
             text-align: center;
             min-height: 20px;
+            padding: 10px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
         }
 
         .success {
-            color: #4cff9f;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.2);
         }
 
         .error {
-            color: #ff7a7a;
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2);
         }
 
         .upload-disabled {
             pointer-events: none;
-            opacity: 0.45;
+            opacity: 0.5;
+            filter: grayscale(1);
         }
 
         .upload-disabled * {
@@ -364,7 +529,7 @@
 <body>
     <div class="card">
         <h2> POC AI Analyzer </h2>
-       
+        <p class="subtitle">Automated Extraction & Structuring for Plan of Care</p>
         <div id="loadingMessage" style="text-align:center; color:#4fa3ff; margin-bottom:15px; font-weight:500;">
             Connecting to Salesforce...
         </div>
@@ -375,18 +540,20 @@
                 <div>
                     <div class="upload-title">Upload Clinical Documents</div>
                     <div class="upload-subtitle">
-                       
+                        Plan of Care (POC) PDFs and Images
                     </div>
                 </div>
             </div>
             <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
                 <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple hidden
                     onchange="handleFileSelect(this)">
-                <div class="upload-zone-icon">⬆️</div>
+                <div class="upload-zone-icon">☁️</div>
                 <div class="upload-zone-text">Click to upload or drag files here</div>
+                <div class="upload-zone-subtext">Supported formats: PDF, JPG, PNG, DOCX</div>
             </div>
             <div id="fileSectionHeader" class="file-section-header">
-                Uploaded Files (<span id="fileCount">0</span>)
+                <span>Uploaded Files</span>
+                <span id="fileCount" class="file-count-badge">0</span>
             </div>
             <div id="fileListContainer" class="file-list"></div>
             <button id="analyzeBtn" class="analyze-btn" onclick="startAnalysis()">
@@ -407,8 +574,8 @@
         <div id="status" class="status"></div>
 
         <div id="resultArea">
-            <div style="display:block">
-                <label>Extracted POC Values:</label>
+            <div class="result-box-container">
+                <div class="result-box-header">Extracted POC Values (JSON)</div>
                 <textarea id="jsonOutput" class="result-box" readonly></textarea>
             </div>
 
