@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>POC AI Analyzer</title>
+    <style>
+        /* --- GLOBAL LAYOUT (Dark Theme) --- */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #0b1f2a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #ffffff;
+        }
+
+        .card {
+            width: 650px;
+            background: #081821;
+            border-radius: 14px;
+            padding: 28px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, .45);
+            margin: 20px 0;
+            position: relative;
+            border: 1px solid #1f3a4d;
+        }
+
+        h2 {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-weight: 600;
+            text-align: center;
+            letter-spacing: 0.5px;
+            color: #e0e0e0;
+        }
+
+        p {
+            font-size: 14px;
+            opacity: 0.7;
+            text-align: center;
+            margin-bottom: 25px;
+            color: #8daac2;
+        }
+
+        /* --- FILE INPUT --- */
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px dashed #4fa3ff;
+            background: #06141c;
+            color: #fff;
+            cursor: pointer;
+            box-sizing: border-box;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="file"]:hover {
+            border-color: #7abaff;
+        }
+
+        /* --- UPLOAD CARD STYLES --- */
+        .upload-card {
+            background: linear-gradient(180deg, #0c2230, #081821);
+            border: 1px solid #1f3a4d;
+            border-radius: 14px;
+            padding: 22px;
+        }
+
+        .upload-header {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+
+        .upload-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: rgba(79, 163, 255, 0.15);
+            color: #7abaff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .upload-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #e4f1ff;
+        }
+
+        .upload-subtitle {
+            font-size: 12px;
+            color: #9bb9d4;
+        }
+
+        .upload-zone {
+            border: 2px dashed #355a74;
+            border-radius: 12px;
+            padding: 26px;
+            text-align: center;
+            background: #06141c;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            margin-bottom: 16px;
+        }
+
+        .upload-zone:hover {
+            border-color: #7abaff;
+            background: #081d2a;
+        }
+
+        .upload-zone-icon {
+            font-size: 30px;
+            color: #7abaff;
+            margin-bottom: 6px;
+        }
+
+        .upload-zone-text {
+            font-size: 13px;
+            font-weight: 600;
+            color: #d6eaff;
+        }
+
+        .file-section-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: #cfe7ff;
+            margin-bottom: 10px;
+            display: none;
+        }
+
+        /* --- FILE LIST --- */
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 10px 14px;
+            border: 1px solid #e6e6e6;
+            transition: all 0.2s ease;
+        }
+
+        .file-item:hover {
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+        }
+
+        .file-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 0;
+        }
+
+        .file-type-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            background: #eef5ff;
+            color: #4fa3ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+
+        .file-meta {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-size: 13px;
+            font-weight: 600;
+            color: #1e1e1e;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 260px;
+        }
+
+        .file-size {
+            font-size: 11px;
+            color: #6b6b6b;
+        }
+
+        .remove-btn {
+            background: transparent;
+            border: none;
+            color: #9b9b9b;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 6px;
+            transition: all 0.2s ease;
+        }
+
+        .remove-btn:hover {
+            background: #ffecec;
+            color: #d64545;
+        }
+
+        /* --- BUTTONS --- */
+        .analyze-btn {
+            width: 100%;
+            padding: 13px;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #4fa3ff, #7abaff);
+            border: none;
+            font-size: 14px;
+            font-weight: 600;
+            color: #04121a;
+            cursor: pointer;
+            transition: all 0.25s ease;
+        }
+
+        .analyze-btn:not(:disabled):hover {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 30px rgba(79, 163, 255, 0.35);
+        }
+
+        .analyze-btn:disabled {
+            background: #6b6b6b;
+            color: #d1d1d1;
+        }
+
+        .save-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #4cff9f, #27ae60);
+            color: #052e16;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            margin-top: 15px;
+            cursor: pointer;
+        }
+
+        .save-btn:disabled {
+            background: #7f8c8d;
+            color: #fff;
+            cursor: not-allowed;
+        }
+
+        /* --- PROGRESS --- */
+        .progress-wrapper {
+            display: none;
+            margin-top: 18px;
+        }
+
+        .progress-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: #9bb9d4;
+            margin-bottom: 6px;
+        }
+
+        .progress-container {
+            background: #102a3a;
+            border-radius: 10px;
+            height: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #4fa3ff, #7abaff);
+            transition: width 0.4s ease;
+        }
+
+        /* --- RESULTS --- */
+        #resultArea {
+            display: none;
+            margin-top: 25px;
+            border-top: 1px solid #1f3a4d;
+            padding-top: 20px;
+        }
+
+        .result-box {
+            width: 100%;
+            background: #050e13;
+            color: #a6e22e;
+            border: 1px solid #1f3a4d;
+            border-radius: 6px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 12px;
+            resize: vertical;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+
+        textarea#output1 {
+            height: 100px;
+            color: #ffc107;
+        }
+
+        textarea#output2 {
+            height: 150px;
+            color: #82e0aa;
+        }
+        
+        textarea#output3 {
+            height: 200px;
+        }
+
+        label {
+            font-size: 12px;
+            color: #8daac2;
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+
+        .status {
+            margin-top: 15px;
+            font-size: 13px;
+            text-align: center;
+            min-height: 20px;
+        }
+
+        .success {
+            color: #4cff9f;
+        }
+
+        .error {
+            color: #ff7a7a;
+        }
+
+        .upload-disabled {
+            pointer-events: none;
+            opacity: 0.45;
+        }
+
+        .upload-disabled * {
+            cursor: wait !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h2>POC AI Analyzer</h2>
+        <p>Proof of Concept AI Document Analysis</p>
+        <div id="loadingMessage" style="text-align:center; color:#4fa3ff; margin-bottom:15px; font-weight:500;">
+            Connecting to Salesforce...
+        </div>
+
+        <div id="mainControls" class="upload-card" style="display:none;">
+            <div class="upload-header">
+                <div class="upload-icon">📄</div>
+                <div>
+                    <div class="upload-title">Upload Documents for POC</div>
+                    <div class="upload-subtitle">
+                        Upload relevant files here
+                    </div>
+                </div>
+            </div>
+            <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
+                <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" multiple hidden
+                    onchange="handleFileSelect(this)">
+                <div class="upload-zone-icon">⬆️</div>
+                <div class="upload-zone-text">Click to upload or drag files here</div>
+            </div>
+            <div id="fileSectionHeader" class="file-section-header">
+                Uploaded Files (<span id="fileCount">0</span>)
+            </div>
+            <div id="fileListContainer" class="file-list"></div>
+            <button id="analyzeBtn" class="analyze-btn" onclick="startAnalysis()">
+                Analyze Documents
+            </button>
+        </div>
+
+        <div id="progressWrapper" class="progress-wrapper">
+            <div class="progress-label">
+                <span id="progressText">Analyzing...</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <div class="progress-container">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div id="status" class="status"></div>
+
+        <div id="resultArea">
+            <div style="display:block">
+                <!-- TODO: Update Labels to match POC requirements -->
+                <label>Output 1 (e.g. Summary):</label>
+                <textarea id="output1" class="result-box" readonly></textarea>
+
+                <label>Output 2 (e.g. Extraction):</label>
+                <textarea id="output2" class="result-box" readonly placeholder="Waiting for analysis..."></textarea>
+
+                <label>Output 3 (e.g. JSON Result):</label>
+                <textarea id="output3" class="result-box" readonly></textarea>
+            </div>
+        </div>
+        
+        <button id="saveBtn" class="save-btn" style="display:none" onclick="finalizeSave()">
+            Save Data & Files
+        </button>
+
+    </div>
+    <script>
+
+        function disableUploadUI() {
+            document.getElementById("mainControls").classList.add("upload-disabled");
+        }
+
+        function enableUploadUI() {
+            document.getElementById("mainControls").classList.remove("upload-disabled");
+        }
+
+        /* =========================================================
+           GLOBAL CONTEXT
+           ========================================================= */
+
+        let currentSessionLogs = [];
+        let precodingStartTime = null;
+        let precodingCompleteDate = null;
+        let CHART_ID = null;
+        let GEMINI_API_KEY = null;
+        let SF_SESSION_ID = null;
+        let SF_BASE_URL = null;
+        let VECTOR_STORE_ID = null;
+        let CACHED_AI_TIME = 0;
+        let IS_PORTAL = false;
+
+        let selectedFiles = [];
+        let GEMINI_VISION_ENDPOINT = "";
+        let GEMINI_RAG_ENDPOINT = "";
+
+        /* =========================================================
+           SALESFORCE CONNECTION
+           ========================================================= */
+
+        window.addEventListener("message", (event) => {
+            if (event.data && event.data.type === "SF_CONTEXT") {
+                console.log("✅ Received Context from Salesforce");
+
+                CHART_ID = event.data.recordId;
+                GEMINI_API_KEY = event.data.apiKey;
+                SF_SESSION_ID = event.data.sessionId;
+                SF_BASE_URL = event.data.baseUrl;
+                VECTOR_STORE_ID = event.data.geminiFileStore;
+                IS_PORTAL = event.data.isPortal;
+                
+                const model = event.data.geminiModel;
+                GEMINI_VISION_ENDPOINT = \`https://generativelanguage.googleapis.com/v1beta/models/\${model}:generateContent\`;
+                GEMINI_RAG_ENDPOINT    = \`https://generativelanguage.googleapis.com/v1beta/models/\${model}:generateContent\`;
+                
+                document.getElementById("loadingMessage").style.display = "none";
+                document.getElementById("mainControls").style.display = "block";
+            }
+        });
+
+        /* =========================================================
+           FILE UI LOGIC
+           ========================================================= */
+
+        function handleFileSelect(inputElement) {
+            if (inputElement.files && inputElement.files.length > 0) {
+                for (let i = 0; i < inputElement.files.length; i++) {
+                    selectedFiles.push(inputElement.files[i]);
+                }
+                renderFileList();
+                inputElement.value = "";
+            }
+        }
+
+        function removeFile(index) {
+            selectedFiles.splice(index, 1);
+            renderFileList();
+        }
+
+        function renderFileList() {
+            const container = document.getElementById("fileListContainer");
+            const header = document.getElementById("fileSectionHeader");
+            const countSpan = document.getElementById("fileCount");
+
+            container.innerHTML = "";
+
+            if (selectedFiles.length === 0) {
+                container.style.display = "none";
+                header.style.display = "none";
+                return;
+            }
+
+            header.style.display = "block";
+            container.style.display = "flex";
+            countSpan.innerText = selectedFiles.length;
+
+            selectedFiles.forEach((file, index) => {
+                const item = document.createElement("div");
+                item.className = "file-item";
+                const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+                item.innerHTML = \`
+            <div class="file-left">
+                <div class="file-type-icon">📄</div>
+                <div class="file-meta">
+                    <div class="file-name" title="\${file.name}">
+                        \${file.name}
+                    </div>
+                    <div class="file-size">
+                        \${sizeMB} MB
+                    </div>
+                </div>
+            </div>
+            <button class="remove-btn" onclick="removeFile(\${index})" title="Remove file">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
+                    stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"></path>
+                    <path d="M10 11v6"></path>
+                    <path d="M14 11v6"></path>
+                    <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+                </svg>
+            </button>\`;
+                container.appendChild(item);
+            });
+        }
+
+        /* =========================================================
+           PROGRESS BAR HELPER
+           ========================================================= */
+
+        function updateProgress(percent, text) {
+            const wrapper = document.getElementById("progressWrapper");
+            const fill = document.getElementById("progressFill");
+            const textSpan = document.getElementById("progressText");
+            const percentSpan = document.getElementById("progressPercent");
+
+            wrapper.style.display = "block";
+            fill.style.width = percent + "%";
+            if (text) textSpan.innerText = text;
+            percentSpan.innerText = percent + "%";
+        }
+
+        let progressTimer = null;
+        let progressValue = 1;
+
+        function startAutoProgress(target = 90, speed = 120) {
+            clearInterval(progressTimer);
+            progressTimer = setInterval(() => {
+                if (progressValue < target) {
+                    progressValue++;
+                    updateProgress(progressValue);
+                } else {
+                    clearInterval(progressTimer);
+                }
+            }, speed);
+        }
+
+        function stopAutoProgress(finalValue = 100, text = "Complete") {
+            clearInterval(progressTimer);
+            progressValue = finalValue;
+            updateProgress(progressValue, text);
+        }
+
+        /* =========================================================
+           MAIN ANALYSIS LOGIC
+           ========================================================= */
+
+        async function startAnalysis() {
+            precodingStartTime = new Date().toISOString();
+            const analyzeBtn = document.getElementById("analyzeBtn");
+            const resultArea = document.getElementById("resultArea");
+            const output1 = document.getElementById("output1");
+            const output2 = document.getElementById("output2"); 
+            const output3 = document.getElementById("output3");
+
+            // UI Reset
+            resultArea.style.display = "none";
+            output1.value = "";
+            output2.value = "";
+            output3.value = "";
+            showStatus("");
+
+            if (!CHART_ID || !GEMINI_API_KEY) {
+                showStatus("❌ Configuration missing. Refresh Salesforce page.", true);
+                return;
+            }
+
+            if (selectedFiles.length === 0) {
+                showStatus("❌ Please upload at least one file.", true);
+                return;
+            }
+            
+            try {
+                analyzeBtn.disabled = true;
+                disableUploadUI();
+                analyzeBtn.innerText = "Analyzing...";
+
+                progressValue = 1;
+                updateProgress(1, "Initializing POC Batch...");
+                startAutoProgress(90, 120);
+
+                const startTime = Date.now();
+
+                // --- STEP 1: READ FILES ---
+                updateProgress(progressValue, \`Processing \${selectedFiles.length} file(s)...\`);
+                const fileDataArray = await Promise.all(
+                    selectedFiles.map(file => readFileAsBase64(file))
+                );
+
+                // --- STEP 2: PARALLEL AI EXECUTION (POC Functions) ---
+                updateProgress(progressValue, "AI Running POC Analysis...");
+
+                const [result1, result2, result3] = await Promise.all([
+                    callGeminiPOCFunction1(fileDataArray),
+                    callGeminiPOCFunction2(fileDataArray),
+                    callGeminiPOCFunction3(fileDataArray)
+                ]);
+
+                CACHED_AI_TIME = Math.floor((Date.now() - startTime) / 1000);
+
+                // --- STEP 3: DISPLAY RESULTS ---
+                // Format output3 as JSON if possible
+                let prettyOutput3 = result3;
+                try {
+                    const cleanJson = result3.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
+                    prettyOutput3 = JSON.stringify(JSON.parse(cleanJson), null, 4);
+                } catch { }
+                
+                let prettyOutput2 = result2;
+                try {
+                    const cleanJson = result2.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
+                    prettyOutput2 = JSON.stringify(JSON.parse(cleanJson), null, 4);
+                } catch { }
+
+                output1.value = result1;
+                output2.value = prettyOutput2;
+                output3.value = prettyOutput3; 
+
+                resultArea.style.display = "block";
+                document.getElementById("saveBtn").style.display = "block";
+
+                stopAutoProgress(100, "Complete");
+
+                setTimeout(() => {
+                    document.getElementById("mainControls").style.display = "none";
+                }, 500);
+
+                showStatus("✅ Analysis Complete.", false);
+
+            } catch (error) {
+                console.error(error);
+                stopAutoProgress(progressValue, "Failed");
+                showStatus("❌ " + error.message, true);
+
+            } finally {
+                analyzeBtn.disabled = false;
+                analyzeBtn.innerText = "Analyze Documents";
+                enableUploadUI();
+            }
+        }
+
+        /* =========================================================
+           SAVE LOGIC
+           ========================================================= */
+
+        async function finalizeSave() {
+            precodingCompleteDate = new Date().toISOString();
+            const saveBtn = document.getElementById("saveBtn");
+            const output1 = document.getElementById("output1");
+            const output2 = document.getElementById("output2");
+            const output3 = document.getElementById("output3");
+
+            try {
+                saveBtn.disabled = true;
+                saveBtn.innerText = "Saving Data...";
+
+                let payloadJson = output3.value;
+                try {
+                    // Adjust this based on POC JSON structure if needed
+                    const parsed = JSON.parse(output3.value);
+                    if (parsed.finalData) {
+                        payloadJson = JSON.stringify(parsed.finalData);
+                    }
+                } catch (e) {
+                    console.warn("Could not parse output3 JSON, sending raw value.");
+                }
+
+                // Call POC Apex endpoint
+                await sendToSalesforcePOC(
+                    output1.value,
+                    output2.value,
+                    payloadJson,
+                    CACHED_AI_TIME,
+                    currentSessionLogs,
+                    precodingStartTime,
+                    precodingCompleteDate
+                );
+
+                if (selectedFiles.length > 0) {
+                    saveBtn.innerText = \`Uploading \${selectedFiles.length} Files...\`;
+                    await saveFilesToSalesforceRecord();
+                }
+
+                showStatus("✅ Data & Files Saved Successfully!", false);
+                saveBtn.innerText = "Saved";
+                setTimeout(() => {
+                    if (IS_PORTAL) {
+                        window.location.reload();
+                    } else {
+                        window.location.href = \`\${SF_BASE_URL}/lightning/r/Chart__c/\${CHART_ID}/view\`;
+                    }
+                }, 1000);
+
+                setTimeout(() => {
+                    saveBtn.disabled = true;
+                    saveBtn.innerText = "Save Data & Files";
+                }, 3000);
+
+            } catch (e) {
+                console.error(e);
+                showStatus("❌ Save failed: " + e.message, true);
+                saveBtn.disabled = false;
+                saveBtn.innerText = "Save Data & Files";
+            }
+        }
+
+        async function sendToSalesforcePOC(output1, output2, output3Json, aiTimeSeconds, aiLogs, startTime, completeTime) {
+            // TODO: Update this Apex endpoint for the POC
+            const endpoint = \`\${SF_BASE_URL}/services/apexrest/poc/ai-result\`;
+
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: { "Authorization": "Bearer " + SF_SESSION_ID, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    chartId: CHART_ID,
+                    output1: output1,
+                    output2: output2,
+                    output3Json: output3Json,
+                    aiTimeSeconds: aiTimeSeconds,
+                    aiLogs: aiLogs,
+                    pocStartTime: startTime,
+                    pocCompleteDate: completeTime
+                })
+            });
+            if (!response.ok) throw new Error(await response.text());
+        }
+
+        async function saveFilesToSalesforceRecord() {
+            const endpoint = \`\${SF_BASE_URL}/services/data/v57.0/sobjects/ContentVersion\`;
+
+            for (let i = 0; i < selectedFiles.length; i++) {
+                const file = selectedFiles[i];
+                showStatus(\`Uploading file \${i + 1} of \${selectedFiles.length}: \${file.name}...\`, false);
+
+                try {
+                    const fileData = await readFileAsBase64(file);
+                    const payload = {
+                        "Title": file.name,
+                        "PathOnClient": file.name,
+                        "VersionData": fileData.base64,
+                        "FirstPublishLocationId": CHART_ID,
+                        "Origin": "H"
+                    };
+
+                    const response = await fetch(endpoint, {
+                        method: "POST",
+                        headers: {
+                            "Authorization": "Bearer " + SF_SESSION_ID,
+                            "Content-Type": "application/json",
+                            "Accept": "application/json"
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json();
+                        const errorCode = errorData[0]?.errorCode || "UNKNOWN";
+                        const errorMessage = errorData[0]?.message || "Unknown error";
+                        throw new Error(\`Salesforce Error: \${errorCode} - \${errorMessage}\`);
+                    }
+
+                    console.log(\`✅ Upload Success: \${file.name}\`);
+
+                } catch (err) {
+                    console.error(err);
+                    showStatus(\`❌ Failed to upload \${file.name}: \${err.message}\`, true);
+                }
+            }
+        }
+
+        /* =========================================================
+           API CALLS (GEMINI POC Placeholders)
+           ========================================================= */
+
+        // --- POC Function 1 ---
+        async function callGeminiPOCFunction1(fileDataArray) {
+            // TODO: Update this prompt
+            const prompt = \`
+You will receive multiple uploaded documents.
+Your job is to read and understand the documents.
+Provide a concise summary UNDER 200 WORDS.
+            \`;
+
+            const parts = [{ text: prompt }];
+            fileDataArray.forEach(f => {
+                parts.push({
+                    inlineData: { mimeType: f.mimeType, data: f.base64 }
+                });
+            });
+
+            const response = await fetch(\`\${GEMINI_VISION_ENDPOINT}?key=\${GEMINI_API_KEY}\`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: parts }] })
+            });
+
+            if (!response.ok) {
+                console.warn("POC Function 1 failed.");
+                return "Failed to analyze document.";
+            }
+            const data = await response.json();
+            currentSessionLogs.push({
+                description: "POC Function 1",
+                model: data.modelVersion,
+                responseId: data.responseId,
+                promptTokens: data.usageMetadata.promptTokenCount,
+                totalTokens: data.usageMetadata.totalTokenCount
+            });
+
+            let text = data.candidates[0].content.parts[0].text;
+            return text.replace(/\*/g, "").trim();
+        }
+
+        // --- POC Function 2 ---
+        async function callGeminiPOCFunction2(fileDataArray) {
+            // TODO: Update this prompt
+            const prompt = \`
+Extract specific entities from the text and return as JSON.
+            \`;
+
+            const parts = [{ text: prompt }];
+            fileDataArray.forEach(f => {
+                parts.push({
+                    inlineData: { mimeType: f.mimeType, data: f.base64 }
+                });
+            });
+
+            const response = await fetch(\`\${GEMINI_VISION_ENDPOINT}?key=\${GEMINI_API_KEY}\`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: parts }] })
+            });
+
+            if (!response.ok) {
+                console.warn("POC Function 2 failed");
+                return "{}";
+            }
+            const data = await response.json();
+            currentSessionLogs.push({
+                description: "POC Function 2",
+                model: data.modelVersion,
+                responseId: data.responseId,
+                promptTokens: data.usageMetadata.promptTokenCount,
+                totalTokens: data.usageMetadata.totalTokenCount
+            });
+
+            return data.candidates[0].content.parts[0].text;
+        }
+
+        // --- POC Function 3 ---
+        async function callGeminiPOCFunction3(fileDataArray) {
+            // TODO: Update this prompt
+            const prompt = \`
+Return a final complex JSON analysis structure based on the documents.
+            \`;
+
+            const parts = [{ text: prompt }];
+            fileDataArray.forEach(f => {
+                parts.push({ inlineData: { mimeType: f.mimeType, data: f.base64 } });
+            });
+
+            const response = await fetch(\`\${GEMINI_VISION_ENDPOINT}?key=\${GEMINI_API_KEY}\`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ contents: [{ parts: parts }] })
+            });
+
+            if (!response.ok) {
+                console.warn("POC Function 3 failed");
+                return "{}";
+            }
+            const data = await response.json();
+            currentSessionLogs.push({
+                description: "POC Function 3",
+                model: data.modelVersion,
+                responseId: data.responseId,
+                promptTokens: data.usageMetadata.promptTokenCount,
+                totalTokens: data.usageMetadata.totalTokenCount
+            });
+
+            return data.candidates[0].content.parts[0].text;
+        }
+
+        /* =========================================================
+           HELPERS
+           ========================================================= */
+
+        function showStatus(message, isError = false) {
+            const status = document.getElementById("status");
+            status.innerHTML = \`<span class="\${isError ? 'error' : 'success'}">\${message}</span>\`;
+        }
+
+        function readFileAsBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve({
+                    mimeType: file.type,
+                    base64: reader.result.split(",")[1],
+                    name: file.name
+                });
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+    </script>
+</body>
+
+</html>
