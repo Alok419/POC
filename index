@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <title>POC AI Analyzer</title>
+    <title>Precoding AI Analyzer (Unified)</title>
     <style>
         /* --- GLOBAL LAYOUT (Dark Theme) --- */
         body {
@@ -20,6 +21,7 @@
 
         .card {
             width: 650px;
+            /* Slightly wider to accommodate data */
             background: #081821;
             border-radius: 14px;
             padding: 28px;
@@ -307,19 +309,22 @@
             margin-bottom: 15px;
         }
 
-        textarea#output1 {
+        textarea#jsonOutput {
+            height: 200px;
+        }
+
+        textarea#f2fOutput {
             height: 100px;
             color: #ffc107;
         }
 
-        textarea#output2 {
+        /* Yellow for F2F */
+        textarea#ptOtOutput {
             height: 150px;
             color: #82e0aa;
         }
-        
-        textarea#output3 {
-            height: 200px;
-        }
+
+        /* Green tint for PT/OT */
 
         label {
             font-size: 12px;
@@ -358,8 +363,8 @@
 
 <body>
     <div class="card">
-        <h2>POC AI Analyzer</h2>
-        <p>Proof of Concept AI Document Analysis</p>
+        <h2> Precoding AI Analyzer </h2>
+        <p>Extraction, PT/OT Eval, ICD-10 Audit & F2F</p>
         <div id="loadingMessage" style="text-align:center; color:#4fa3ff; margin-bottom:15px; font-weight:500;">
             Connecting to Salesforce...
         </div>
@@ -368,9 +373,9 @@
             <div class="upload-header">
                 <div class="upload-icon">📄</div>
                 <div>
-                    <div class="upload-title">Upload Documents for POC</div>
+                    <div class="upload-title">Upload Clinical Documents</div>
                     <div class="upload-subtitle">
-                        Upload relevant files here
+                        Face-to-Face, PT/OT Evals, Encounter Notes
                     </div>
                 </div>
             </div>
@@ -403,18 +408,18 @@
 
         <div id="resultArea">
             <div style="display:block">
-                <!-- TODO: Update Labels to match POC requirements -->
-                <label>Output 1 (e.g. Summary):</label>
-                <textarea id="output1" class="result-box" readonly></textarea>
+                <label>F2F Encounter Summary:</label>
+                <textarea id="f2fOutput" class="result-box" readonly></textarea>
 
-                <label>Output 2 (e.g. Extraction):</label>
-                <textarea id="output2" class="result-box" readonly placeholder="Waiting for analysis..."></textarea>
+                <label>PT/OT Functional Assessment:</label>
+                <textarea id="ptOtOutput" class="result-box" readonly placeholder="Waiting for analysis..."></textarea>
 
-                <label>Output 3 (e.g. JSON Result):</label>
-                <textarea id="output3" class="result-box" readonly></textarea>
+                <label>Final Audited Result (ICD-10 Compliant):</label>
+                <textarea id="jsonOutput" class="result-box" readonly></textarea>
             </div>
+
+
         </div>
-        
         <button id="saveBtn" class="save-btn" style="display:none" onclick="finalizeSave()">
             Save Data & Files
         </button>
@@ -435,6 +440,7 @@
            ========================================================= */
 
         let currentSessionLogs = [];
+
         let precodingStartTime = null;
         let precodingCompleteDate = null;
         let CHART_ID = null;
@@ -445,10 +451,14 @@
         let CACHED_AI_TIME = 0;
         let IS_PORTAL = false;
 
+        // Array to store actual File objects
         let selectedFiles = [];
-        let GEMINI_VISION_ENDPOINT = "";
-        let GEMINI_RAG_ENDPOINT = "";
 
+        // Using 2.5 Pro for Vision tasks (Diagnosis, PT/OT) and RAG
+       // const GEMINI_VISION_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent";
+        //const GEMINI_RAG_ENDPOINT = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-pro-preview:generateContent";
+         let GEMINI_VISION_ENDPOINT = "";
+         let GEMINI_RAG_ENDPOINT = "";
         /* =========================================================
            SALESFORCE CONNECTION
            ========================================================= */
@@ -465,9 +475,8 @@
                 IS_PORTAL = event.data.isPortal;
                 
                 const model = event.data.geminiModel;
-                GEMINI_VISION_ENDPOINT = \`https://generativelanguage.googleapis.com/v1beta/models/\${model}:generateContent\`;
-                GEMINI_RAG_ENDPOINT    = \`https://generativelanguage.googleapis.com/v1beta/models/\${model}:generateContent\`;
-                
+                GEMINI_VISION_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+                GEMINI_RAG_ENDPOINT    = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
                 document.getElementById("loadingMessage").style.display = "none";
                 document.getElementById("mainControls").style.display = "block";
             }
@@ -512,20 +521,22 @@
             selectedFiles.forEach((file, index) => {
                 const item = document.createElement("div");
                 item.className = "file-item";
+
                 const sizeMB = (file.size / 1024 / 1024).toFixed(2);
-                item.innerHTML = \`
+
+                item.innerHTML = `
             <div class="file-left">
                 <div class="file-type-icon">📄</div>
                 <div class="file-meta">
-                    <div class="file-name" title="\${file.name}">
-                        \${file.name}
+                    <div class="file-name" title="${file.name}">
+                        ${file.name}
                     </div>
                     <div class="file-size">
-                        \${sizeMB} MB
+                        ${sizeMB} MB
                     </div>
                 </div>
             </div>
-            <button class="remove-btn" onclick="removeFile(\${index})" title="Remove file">
+            <button class="remove-btn" onclick="removeFile(${index})" title="Remove file">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none"
                     stroke="currentColor" stroke-width="2"
                     stroke-linecap="round" stroke-linejoin="round">
@@ -535,10 +546,12 @@
                     <path d="M14 11v6"></path>
                     <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
                 </svg>
-            </button>\`;
+            </button>
+        `;
                 container.appendChild(item);
             });
         }
+
 
         /* =========================================================
            PROGRESS BAR HELPER
@@ -561,6 +574,7 @@
 
         function startAutoProgress(target = 90, speed = 120) {
             clearInterval(progressTimer);
+
             progressTimer = setInterval(() => {
                 if (progressValue < target) {
                     progressValue++;
@@ -577,25 +591,29 @@
             updateProgress(progressValue, text);
         }
 
+
         /* =========================================================
            MAIN ANALYSIS LOGIC
            ========================================================= */
 
         async function startAnalysis() {
+
+
             precodingStartTime = new Date().toISOString();
             const analyzeBtn = document.getElementById("analyzeBtn");
             const resultArea = document.getElementById("resultArea");
-            const output1 = document.getElementById("output1");
-            const output2 = document.getElementById("output2"); 
-            const output3 = document.getElementById("output3");
+            const jsonOutput = document.getElementById("jsonOutput");
+            const f2fOutput = document.getElementById("f2fOutput");
+            const ptOtOutput = document.getElementById("ptOtOutput"); // Added
 
             // UI Reset
             resultArea.style.display = "none";
-            output1.value = "";
-            output2.value = "";
-            output3.value = "";
+            jsonOutput.value = "";
+            f2fOutput.value = "";
+            ptOtOutput.value = ""; // Reset PT/OT
             showStatus("");
 
+            // Validations
             if (!CHART_ID || !GEMINI_API_KEY) {
                 showStatus("❌ Configuration missing. Refresh Salesforce page.", true);
                 return;
@@ -605,56 +623,63 @@
                 showStatus("❌ Please upload at least one file.", true);
                 return;
             }
-            
             try {
                 analyzeBtn.disabled = true;
                 disableUploadUI();
                 analyzeBtn.innerText = "Analyzing...";
 
+                // 🔵 Start progress
                 progressValue = 1;
-                updateProgress(1, "Initializing POC Batch...");
+                updateProgress(1, "Initializing Batch...");
                 startAutoProgress(90, 120);
 
                 const startTime = Date.now();
 
                 // --- STEP 1: READ FILES ---
-                updateProgress(progressValue, \`Processing \${selectedFiles.length} file(s)...\`);
+                updateProgress(progressValue, `Processing ${selectedFiles.length} file(s)...`);
                 const fileDataArray = await Promise.all(
                     selectedFiles.map(file => readFileAsBase64(file))
                 );
 
-                // --- STEP 2: PARALLEL AI EXECUTION (POC Functions) ---
-                updateProgress(progressValue, "AI Running POC Analysis...");
+                // --- STEP 2: PARALLEL AI EXECUTION (Elite Auditor, F2F, and PT/OT) ---
+                updateProgress(progressValue, "AI Running: Elite Auditor, F2F, and PT/OT Extraction...");
 
-                const [result1, result2, result3] = await Promise.all([
-                    callGeminiPOCFunction1(fileDataArray),
-                    callGeminiPOCFunction2(fileDataArray),
-                    callGeminiPOCFunction3(fileDataArray)
+                const [rawExtraction, f2fSummaryText, ptOtResult] = await Promise.all([
+                    callGeminiVisionMulti(fileDataArray), // Elite Auditor (Extraction + Audit combined)
+                    callGeminiF2FSummary(fileDataArray),  // F2F
+                    runPtOtExtraction(fileDataArray)      // PT/OT (New)
                 ]);
 
                 CACHED_AI_TIME = Math.floor((Date.now() - startTime) / 1000);
 
                 // --- STEP 3: DISPLAY RESULTS ---
-                // Format output3 as JSON if possible
-                let prettyOutput3 = result3;
+                // 1. Diagnosis JSON
+                let prettyJson = rawExtraction;
                 try {
-                    const cleanJson = result3.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
-                    prettyOutput3 = JSON.stringify(JSON.parse(cleanJson), null, 4);
-                } catch { }
-                
-                let prettyOutput2 = result2;
-                try {
-                    const cleanJson = result2.replace(/\`\`\`json/g, "").replace(/\`\`\`/g, "").trim();
-                    prettyOutput2 = JSON.stringify(JSON.parse(cleanJson), null, 4);
+                    const cleanJson = rawExtraction
+                        .replace(/```json/g, "")
+                        .replace(/```/g, "")
+                        .trim();
+                    prettyJson = JSON.stringify(JSON.parse(cleanJson), null, 4);
                 } catch { }
 
-                output1.value = result1;
-                output2.value = prettyOutput2;
-                output3.value = prettyOutput3; 
+                // 2. PT/OT JSON
+                let prettyPtOt = ptOtResult;
+                try {
+                    const cleanPtOt = ptOtResult.replace(/```json/g, "").replace(/```/g, "").trim();
+                    prettyPtOt = JSON.stringify(JSON.parse(cleanPtOt), null, 4);
+                } catch { }
 
-                resultArea.style.display = "block";
+                jsonOutput.value = prettyJson;
+                f2fOutput.value = f2fSummaryText;
+                ptOtOutput.value = prettyPtOt; // Display PT/OT
+
+                resultArea.style.display = "none";
+                // display block of this button saveBtn
                 document.getElementById("saveBtn").style.display = "block";
 
+
+                // ✅ Finish progress
                 stopAutoProgress(100, "Complete");
 
                 setTimeout(() => {
@@ -673,47 +698,51 @@
                 analyzeBtn.innerText = "Analyze Documents";
                 enableUploadUI();
             }
+
         }
 
         /* =========================================================
-           SAVE LOGIC
+           SAVE LOGIC (JSON + F2F + PT/OT + FILES)
            ========================================================= */
 
         async function finalizeSave() {
+
             precodingCompleteDate = new Date().toISOString();
             const saveBtn = document.getElementById("saveBtn");
-            const output1 = document.getElementById("output1");
-            const output2 = document.getElementById("output2");
-            const output3 = document.getElementById("output3");
+            const jsonOutput = document.getElementById("jsonOutput");
+            const f2fOutput = document.getElementById("f2fOutput");
+            const ptOtOutput = document.getElementById("ptOtOutput");
 
             try {
                 saveBtn.disabled = true;
+
+                // --- PART 1: SAVE JSON DATA, F2F, & PT/OT VIA APEX ---
                 saveBtn.innerText = "Saving Data...";
 
-                let payloadJson = output3.value;
+                let payloadJson = jsonOutput.value;
                 try {
-                    // Adjust this based on POC JSON structure if needed
-                    const parsed = JSON.parse(output3.value);
-                    if (parsed.finalData) {
-                        payloadJson = JSON.stringify(parsed.finalData);
+                    const parsed = JSON.parse(jsonOutput.value);
+                    if (parsed.finalCodes) {
+                        payloadJson = JSON.stringify(parsed.finalCodes);
                     }
                 } catch (e) {
-                    console.warn("Could not parse output3 JSON, sending raw value.");
+                    console.warn("Could not parse jsonOutput for finalCodes extraction, sending raw value.");
                 }
 
-                // Call POC Apex endpoint
-                await sendToSalesforcePOC(
-                    output1.value,
-                    output2.value,
+                // We now pass rawJson, f2f, and ptOtJson
+                await sendToSalesforce(
                     payloadJson,
+                    f2fOutput.value,
+                    ptOtOutput.value,
                     CACHED_AI_TIME,
                     currentSessionLogs,
                     precodingStartTime,
                     precodingCompleteDate
                 );
 
+                // --- PART 2: UPLOAD FILES VIA STANDARD API ---
                 if (selectedFiles.length > 0) {
-                    saveBtn.innerText = \`Uploading \${selectedFiles.length} Files...\`;
+                    saveBtn.innerText = `Uploading ${selectedFiles.length} Files...`;
                     await saveFilesToSalesforceRecord();
                 }
 
@@ -721,9 +750,11 @@
                 saveBtn.innerText = "Saved";
                 setTimeout(() => {
                     if (IS_PORTAL) {
-                        window.location.reload();
+                        console.log("🔄 Portal User: Refreshing page...");
+                        window.location.reload(); // Refresh current page
                     } else {
-                        window.location.href = \`\${SF_BASE_URL}/lightning/r/Chart__c/\${CHART_ID}/view\`;
+                        console.log("🚀 Internal User: Redirecting to Record...");
+                        window.location.href = `${SF_BASE_URL}/lightning/r/Chart__c/${CHART_ID}/view`;
                     }
                 }, 1000);
 
@@ -740,36 +771,41 @@
             }
         }
 
-        async function sendToSalesforcePOC(output1, output2, output3Json, aiTimeSeconds, aiLogs, startTime, completeTime) {
-            // TODO: Update this Apex endpoint for the POC
-            const endpoint = \`\${SF_BASE_URL}/services/apexrest/poc/ai-result\`;
+        // 1. Send Data to Custom Apex REST API
+        async function sendToSalesforce(rawJson, f2fSummary, ptOtJson, aiTimeSeconds, aiLogs, startTime, completeTime) {
+            const endpoint = `${SF_BASE_URL}/services/apexrest/preCoding/ai-result`;
 
+            console.log("📤 Sending aiTimeSeconds:", aiTimeSeconds);
+            console.log("📤 Sending aiLogs:", aiLogs);
             const response = await fetch(endpoint, {
                 method: "POST",
                 headers: { "Authorization": "Bearer " + SF_SESSION_ID, "Content-Type": "application/json" },
                 body: JSON.stringify({
                     chartId: CHART_ID,
-                    output1: output1,
-                    output2: output2,
-                    output3Json: output3Json,
+                    rawJson: rawJson,
+                    f2fSummary: f2fSummary,
+                    ptOtJson: ptOtJson, // Added PT/OT to payload
                     aiTimeSeconds: aiTimeSeconds,
                     aiLogs: aiLogs,
-                    pocStartTime: startTime,
-                    pocCompleteDate: completeTime
+                    precodingStartTime: startTime,
+                    precodingCompleteDate: completeTime
                 })
             });
             if (!response.ok) throw new Error(await response.text());
         }
 
+        // 2. Upload Files directly to ContentVersion (Standard Salesforce API)
         async function saveFilesToSalesforceRecord() {
-            const endpoint = \`\${SF_BASE_URL}/services/data/v57.0/sobjects/ContentVersion\`;
+            const endpoint = `${SF_BASE_URL}/services/data/v57.0/sobjects/ContentVersion`;
 
             for (let i = 0; i < selectedFiles.length; i++) {
                 const file = selectedFiles[i];
-                showStatus(\`Uploading file \${i + 1} of \${selectedFiles.length}: \${file.name}...\`, false);
+
+                showStatus(`Uploading file ${i + 1} of ${selectedFiles.length}: ${file.name}...`, false);
 
                 try {
                     const fileData = await readFileAsBase64(file);
+
                     const payload = {
                         "Title": file.name,
                         "PathOnClient": file.name,
@@ -792,130 +828,352 @@
                         const errorData = await response.json();
                         const errorCode = errorData[0]?.errorCode || "UNKNOWN";
                         const errorMessage = errorData[0]?.message || "Unknown error";
-                        throw new Error(\`Salesforce Error: \${errorCode} - \${errorMessage}\`);
+                        throw new Error(`Salesforce Error: ${errorCode} - ${errorMessage}`);
                     }
 
-                    console.log(\`✅ Upload Success: \${file.name}\`);
+                    console.log(`✅ Upload Success: ${file.name}`);
 
                 } catch (err) {
                     console.error(err);
-                    showStatus(\`❌ Failed to upload \${file.name}: \${err.message}\`, true);
+                    showStatus(`❌ Failed to upload ${file.name}: ${err.message}`, true);
                 }
             }
         }
 
         /* =========================================================
-           API CALLS (GEMINI POC Placeholders)
+           API CALLS (GEMINI)
            ========================================================= */
 
-        // --- POC Function 1 ---
-        async function callGeminiPOCFunction1(fileDataArray) {
-            // TODO: Update this prompt
-            const prompt = \`
-You will receive multiple uploaded documents.
-Your job is to read and understand the documents.
-Provide a concise summary UNDER 200 WORDS.
-            \`;
+        // --- 1. F2F Summary ---
+        async function callGeminiF2FSummary(fileDataArray) {
+            const f2fPrompt = `
+You will receive multiple uploaded clinical documents.
+Your job is to carefully READ and UNDERSTAND all documents using full medical reasoning.
 
-            const parts = [{ text: prompt }];
+Determine whether ANY file represents a clinical:
+- Face-to-Face (F2F) visit note, OR
+- Encounter note, OR
+- Evaluation/assessment visit documentation, OR
+- Any clinical document describing a direct meeting with the patient.
+
+Do NOT rely on keywords. Use your understanding of medical documentation structure, tone, content, and intent.
+If no such document exists, reply EXACTLY with: "No F2F document found."
+
+If such a document EXISTS:
+→ Provide a concise clinical summary UNDER 200 WORDS that includes:
+   - Reason for visit
+   - Key diagnoses or conditions mentioned
+   - Symptoms or significant findings
+   - Any plan, recommendations, or follow-up if mentioned
+
+Summarize ONLY what is written. Never fabricate or assume.
+    `;
+
+            const parts = [{ text: f2fPrompt }];
             fileDataArray.forEach(f => {
                 parts.push({
                     inlineData: { mimeType: f.mimeType, data: f.base64 }
                 });
             });
 
-            const response = await fetch(\`\${GEMINI_VISION_ENDPOINT}?key=\${GEMINI_API_KEY}\`, {
+            const response = await fetch(`${GEMINI_VISION_ENDPOINT}?key=${GEMINI_API_KEY}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ contents: [{ parts: parts }] })
             });
 
             if (!response.ok) {
-                console.warn("POC Function 1 failed.");
-                return "Failed to analyze document.";
+                console.warn("F2F Summary failed, returning default message.");
+                return "No F2F document found.";
             }
             const data = await response.json();
+            // added code
             currentSessionLogs.push({
-                description: "POC Function 1",
+                description: "F2F Summary Extraction",
                 model: data.modelVersion,
                 responseId: data.responseId,
                 promptTokens: data.usageMetadata.promptTokenCount,
                 totalTokens: data.usageMetadata.totalTokenCount
             });
 
+            // ended here
             let text = data.candidates[0].content.parts[0].text;
             return text.replace(/\*/g, "").trim();
         }
 
-        // --- POC Function 2 ---
-        async function callGeminiPOCFunction2(fileDataArray) {
-            // TODO: Update this prompt
-            const prompt = \`
-Extract specific entities from the text and return as JSON.
-            \`;
+        // --- 2. Elite CDI Auditor (Combined Extraction & Audit) ---
+        async function callGeminiVisionMulti(fileDataArray) {
+            const extractionPrompt = `
+Role: You are an elite, dual-certified Clinical Documentation Improvement (CDI) Specialist and Medical Auditor.
 
-            const parts = [{ text: prompt }];
+Objective: Read the provided clinical text. Extract all documented conditions to the highest level of specificity, then rigorously apply ALL ICD-10-CM Official Guidelines for Coding and Reporting (OGCR) and tabular instructional notes to output a finalized, compliant code list.
+
+You MUST execute this task in four strict steps. Do your reasoning silently before generating the JSON output:
+
+Step 1: Specific Extraction (Gather)
+Extract ALL active, relevant documented medical conditions, symptoms, and histories. Map them to their correct raw ICD-10 codes.
+CRITICAL EXTRACTION RULES:
+- Specificity & Laterality: Extract codes to the highest level of specificity (e.g., left/right, acute/chronic, and 7th characters for injuries like initial/subsequent encounter). Do not use unspecified codes if the documentation supports a specific one.
+- MEAT Criteria (Crucial): Only extract conditions that meet the MEAT criteria (Monitored, Evaluated, Assessed, or Treated) during the current encounter. DO NOT extract historical conditions from a 'Past Medical History' or 'Family History' list unless there is clear documentation that they are actively impacting the patient's current care plan or were assessed today.
+- Z-Codes: Extract all relevant Z-codes, including preventative screenings, personal/family history of illness, and health status indicators (e.g., mobility status, BMI) ONLY IF they meet the MEAT criteria or are actively relevant to the current encounter.
+- Exclusions: DO NOT extract conditions that are explicitly resolved, healed, or no longer receiving active treatment. DO NOT extract symptom codes (R-codes) if they are integral to a confirmed active disease condition.
+- No Inference: Do not infer diagnoses from medications alone.
+
+Step 2: Combination & Instructional Note Coding (Merge & Expand)
+Review your raw list and apply ICD-10-CM Tabular List instructions.
+- The "With" Guideline: If two conditions are linked by the word "with" in the ICD-10-CM Alphabetic Index (e.g., Diabetes with Neuropathy, or Hypertension with CKD), you MUST combine them into the appropriate combination code even if the provider did not explicitly link them in the text.
+- Sequelae (Late Effects): If a current deficit is documented as the late effect of a past condition (e.g., hemiplegia due to old CVA), you MUST use the appropriate 'sequelae of' combination code and DROP the standalone symptom code. Always read the patient's history carefully to determine the exact underlying etiology (e.g., hemorrhage vs infarction).
+- "Code first" & "Use additional code": Ensure you have captured both the underlying condition (etiology) and the manifestation if supported by the text.
+- "Code also": Ensure both diagnoses are captured if clinically documented.
+
+Step 3: Excludes1 & Excludes2 Scrubbing (Conflict Resolution)
+Review the list for mutually exclusive codes.
+- Excludes1: If two codes cannot be coded together, drop the less specific or precluded code.
+- Excludes2: Note if two codes can coexist, but ensure they are both clinically supported as distinct conditions.
+
+Step 4: Strict Sequencing & UHDDS (Order)
+Order the surviving codes perfectly.
+- Principal Diagnosis (UHDDS): Set potentialPrimary=true ONLY for the condition established after study to be chiefly responsible for occasioning the admission of the patient to the hospital/facility for care.
+- Apply "Code first" rules strictly: if a manifestation code is present, its etiology code MUST be sequenced before it.
+- Apply "Use additional code" rules: the additional code must immediately follow the primary code it describes.
+
+Output: Return the result strictly adhering to the requested JSON schema. The JSON must contain your audit trail showing the raw codes, the rules you applied, and the final sequenced list.
+
+====================================================
+STRICT OUTPUT FORMAT (Return ONLY a JSON object)
+Output a single JSON object containing the audit trail and final codes. Do not include markdown formatting or the \`\`\`json block. Just the raw JSON.
+
+{
+"auditTrail": {
+"step1_rawExtraction": [""],
+"step2_combinationsAndInstructions": ["<list of 'With', 'Combination', 'Sequelae', 'Code first', or 'Code also' logic applied>"],
+"step3_scrubbing": ["<list of Excludes1/2 rules applied and codes dropped>"],
+"step4_sequencing": ["<logic for principal diagnosis selection based on UHDDS and exact ordering>"]
+},
+"finalCodes": [
+{
+"code": "",
+"diagnosis": "",
+"potentialPrimary": true or false,
+"reasonSource": "<why selected, specific guidelines applied, and where it was found in the text>"
+}
+]
+}
+
+CRITICAL RULES:
+
+You MUST read every line of every uploaded file.
+
+Missing any diagnosis is considered an audit failure.
+
+YOU MUST NOT summarize, assume, or fabricate any diagnosis.
+
+Before finalizing codes, USE the Google Search tool to look up the current ICD-10-CM Excludes1, Excludes2, and Combination rules for the specific codes you extracted to ensure absolute accuracy.
+
+Every output must directly come from the uploaded files.
+    `;
+
+            const parts = [{ text: extractionPrompt }];
             fileDataArray.forEach(f => {
                 parts.push({
                     inlineData: { mimeType: f.mimeType, data: f.base64 }
                 });
             });
 
-            const response = await fetch(\`\${GEMINI_VISION_ENDPOINT}?key=\${GEMINI_API_KEY}\`, {
+            const response = await fetch(`${GEMINI_VISION_ENDPOINT}?key=${GEMINI_API_KEY}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ contents: [{ parts: parts }] })
+                body: JSON.stringify({
+                    contents: [{ parts: parts }],
+                    tools: [{ googleSearch: {} }]
+                })
             });
 
-            if (!response.ok) {
-                console.warn("POC Function 2 failed");
-                return "{}";
-            }
+            if (!response.ok) throw new Error("Vision Step Failed");
             const data = await response.json();
+
+            // added logs part
+
             currentSessionLogs.push({
-                description: "POC Function 2",
+                description: "Precoding Elite Auditor",
                 model: data.modelVersion,
                 responseId: data.responseId,
                 promptTokens: data.usageMetadata.promptTokenCount,
                 totalTokens: data.usageMetadata.totalTokenCount
             });
+            // ended logs part
 
             return data.candidates[0].content.parts[0].text;
         }
 
-        // --- POC Function 3 ---
-        async function callGeminiPOCFunction3(fileDataArray) {
-            // TODO: Update this prompt
-            const prompt = \`
-Return a final complex JSON analysis structure based on the documents.
-            \`;
+        // --- 3. PT/OT Extraction (New Integrated Function) ---
+        async function runPtOtExtraction(fileDataArray) {
+            const prompt = `
+    Role - You are an expert Medical Data Encoder.
+
+    CRITICAL INSTRUCTION: 
+
+    1. First, determine if any of the uploaded files is a specific Physical Therapy (PT) or Occupational Therapy (OT) Evaluation/Assessment.
+
+    2. If the files are ONLY OASIS forms, physician encounter notes, or discharge summaries WITHOUT a dedicated PT/OT functional assessment section, you MUST return an empty JSON object: {}
+
+    3. DO NOT guess information. If the specific functional levels (Max A, Min A, etc.) are not present in a PT/OT context, return {}.
+ 
+
+    Task -  Extract functional assessment data from the attached Physical Therapy (PT) or Occupational Therapy (OT) documents and map the values to a specific JSON structure using strict standardization rules.
+
+    1. Value Mapping Logic (Strict)
+
+    You must convert the raw text found in the document (e.g., "Min A", "04", "CGA") into the exact string values listed in the Target Output (Required Value) column below.
+    Use the Terms/Codes Found in Doc column to identify the correct match.
+
+    Functional Level    Terms / Codes Found in Doc  Target Output (Required Value)
+    6   06, Ind, Independent, I, Safe   "6"
+    5   05, Mod I, Modified Independent, MI, Setup/Cleanup  "5"
+    4   Walker/Cane used w/o assist, Assist with Device "4"
+    4   Sup, Supervision, ST    "4"
+    4   SBA, Stand By Assist, SC    "4"
+    4   CGA, Contact Guard Assist, Caregiver Assist, Required Assistance    "4"
+    3   03, Min A, Minimum Assist, PM, 25%  "3"
+    3   Mod A, Moderate Assist, 50% "3"
+    2   02, Max A, Max Assistance, SM, 75%  "2"
+    1   01, Dep, Dependent, Total Assist, >75%, Unable  "1"
+    NT  NT, N/A, Not Attempted, Not Tested  "NT"
+
+    Note:
+    If the document uses checkmarks, map the column header (e.g., MIN, MOD, MAX) to the corresponding Target Output.
+
+    2. Extraction Instructions
+
+    Determine Discipline
+    Identify whether the document is PT or OT and populate only the relevant fields.
+
+    Find Current Status
+    Extract the CURRENT status only.
+    Ignore values from Prior Level, Previous, or Goal columns.
+
+    Ambiguity Handling
+
+    If the value is PM, map to "3".
+
+    If the value is SM, map to "2" (unless explicitly labeled Moderate).
+
+    Null Handling
+
+    If a field is not found in the document, exclude it from the JSON or set it to null.
+
+    3. JSON Output Structure
+
+    Return only a valid JSON object using the keys below. Do NOT use markdown code blocks.
+
+    Occupational Therapy (OT) Fields
+
+    (Only populate these if analyzing an OT document)
+
+    Date_of_OT_Eval__c → Format: YYYY-MM-DD
+
+    GG_OT_Feeding__c → Look for Eating / Feeding
+
+    GG_OT_Oral_Hygiene__c → Look for Teeth / Dentures / Oral
+
+    GG_OT_Grooming__c → Look for Grooming / Hygiene
+
+    GG_OT_Toilet_Hygiene__c → Look for Toileting Hygiene / Clothing Management
+
+    GG_OT_Bathing__c → Look for Bathing / Washing Body
+
+    GG_OT_Upper_Body_Dressing__c → Look for Upper Body Dressing
+
+    GG_OT_Lower_Body_Dressing__c → Look for Lower Body Dressing
+
+    GG_OT_Sock_Shoes__c → Look for Footwear / Shoes / Socks
+
+    If combined with Lower Body Dressing, use that score.
+
+    GG_OT_Car_Van__c → Look for Car Transfer in OT section
+
+    GG_OT_Toilet_Transfer__c → Look for Toilet Transfer in OT section
+
+    Physical Therapy (PT) Fields
+
+    (Only populate these if analyzing a PT document)
+
+    GG_PT_Sit_Stand__c → Look for Sit to Stand transfer
+
+    GG_PT_Bed_Wheelchair__c → Look for Bed to Chair / Wheelchair transfer
+
+    GG_PT_Wheelchair_Bed__c → Look for Wheelchair to Bed transfer
+
+    If not distinct, use Bed_Wheelchair value.
+
+    GG_PT_Car_Van__c → Look for Car Transfer
+
+    GG_PT_Toilet_Transfer__c → Look for Toilet Transfer / Commode
+
+    GG_PT_Bathing__c → Look for Tub / Shower Transfer
+
+    GG_PT_Level_10_Feet__c → Look for Ambulation / Gait – 10 ft
+
+    GG_PT_Level_50_Feet__c → Look for Ambulation / Gait – 50 ft
+
+    GG_PT_Level_150_Feet__c → Look for Ambulation / Gait – 150 ft
+
+    GG_PT_Unlevel__c → Look for Uneven Surfaces
+
+    GG_PT_1_Step__c → Look for 1 Step / Curb
+
+    GG_PT_4_Steps__c → Look for 4 Steps
+
+    GG_PT_12_Steps__c → Look for 12 Steps / Full Flight
+
+    General Fields (All Documents)
+
+    Complete_PT_OT_Eval__c → Always set to "Yes"
+
+    Date_of_PT_OT_Eval__c → Date of evaluation (YYYY-MM-DD)
+
+    Bed_Mobility__c → Look for Rolling Left / Right
+
+    Transfer__c → Look for Supine to Sit / Sit to Supine
+
+    Gait__c → Look for general ambulation if distances are not listed
+
+    Wheelchair_Mobility__c → Look for Wheelchair use / propulsion
+
+     Other__c → Look for Unlevel or Uneven Surfaces (Level / Unlevel / Uneven / Uneven surface / Walk on uneven surfaces and Populate this field using the same Value Mapping Logic defined above.)
+    `;
 
             const parts = [{ text: prompt }];
             fileDataArray.forEach(f => {
                 parts.push({ inlineData: { mimeType: f.mimeType, data: f.base64 } });
             });
 
-            const response = await fetch(\`\${GEMINI_VISION_ENDPOINT}?key=\${GEMINI_API_KEY}\`, {
+            const response = await fetch(`${GEMINI_VISION_ENDPOINT}?key=${GEMINI_API_KEY}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ contents: [{ parts: parts }] })
             });
 
             if (!response.ok) {
-                console.warn("POC Function 3 failed");
+                console.warn("PT/OT Extraction failed");
                 return "{}";
             }
             const data = await response.json();
+            // logs
+
             currentSessionLogs.push({
-                description: "POC Function 3",
+                description: "PT/OT Functional Assessment",
                 model: data.modelVersion,
                 responseId: data.responseId,
                 promptTokens: data.usageMetadata.promptTokenCount,
                 totalTokens: data.usageMetadata.totalTokenCount
             });
 
+            // ended
             return data.candidates[0].content.parts[0].text;
         }
+
+
 
         /* =========================================================
            HELPERS
@@ -923,7 +1181,7 @@ Return a final complex JSON analysis structure based on the documents.
 
         function showStatus(message, isError = false) {
             const status = document.getElementById("status");
-            status.innerHTML = \`<span class="\${isError ? 'error' : 'success'}">\${message}</span>\`;
+            status.innerHTML = `<span class="${isError ? 'error' : 'success'}">${message}</span>`;
         }
 
         function readFileAsBase64(file) {
